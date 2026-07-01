@@ -3,35 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>제일복권 메이커 편집기 V8</title>
+    <title>제일복권 메이커 편집기 V9</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
     <style>
-        /* ★ V8 추가: 내가 가진 폰트 파일 불러오기 ★ */
         @font-face {
-            font-family: 'CustomKujiFont'; /* 코드 안에서 부를 폰트 별명 */
-            /* 
-              실제 폰트 파일 이름으로 아래 'myfont.ttf'를 바꿔주세요. 
-              확장자가 woff, otf라면 포맷도 바꿔서 적어주면 됩니다. 
-            */
-            src: url('./PAPERLOGY-5MEDIUM.TTF'); 
+            font-family: 'CustomKujiFont';
+            src: url('./myfont.ttf'); /* 폰트 파일 경로 (필요시 수정) */
             font-weight: normal;
             font-style: normal;
         }
-
-        /* 기본 리셋 및 바깥 배경 (폰트 적용) */
-        body, html { 
-            margin: 0; padding: 0; 
-            font-family: 'CustomKujiFont', 'Malgun Gothic', sans-serif; /* 폰트 1순위 적용 */
-            min-height: 100vh; 
-        }
-
-        /* 
-          input, button 등 폼 요소는 기본적으로 body 폰트를 안 따라가는 경우가 있어서 
-          강제로 상속(inherit)받도록 설정해줍니다. 
-        */
-        input, button {
-            font-family: inherit;
-        }
-
+        body, html { margin: 0; padding: 0; font-family: 'CustomKujiFont', 'Malgun Gothic', sans-serif; min-height: 100vh; }
+        input, button { font-family: inherit; }
+        
         .bg-blur {
             position: fixed; top: -5%; left: -5%; width: 110vw; height: 110vh;
             background-color: #e2e8f0; background-size: cover; background-position: center;
@@ -44,33 +30,33 @@
             display: flex; justify-content: space-between; align-items: center;
             box-sizing: border-box; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: relative; z-index: 1;
         }
-        .color-pickers { display: flex; gap: 15px; font-weight: bold; align-items: center; }
+        .color-pickers { display: flex; gap: 10px; font-weight: bold; align-items: center; font-size: 14px; }
+        .action-btns { display: flex; align-items: center; gap: 10px; }
         .action-btns button { 
-            padding: 10px 20px; font-size: 16px; cursor: pointer; border: 2px solid #333; 
-            font-weight: bold; border-radius: 8px; margin-left: 5px;
+            padding: 10px 15px; font-size: 15px; cursor: pointer; border: 2px solid #333; 
+            font-weight: bold; border-radius: 8px;
         }
         .btn-bg { background-color: #cbd5e1; }
         .btn-bg:hover { background-color: #94a3b8; }
         .btn-add { background-color: #10b981; color: white; }
         .btn-add:hover { background-color: #059669; }
+        .btn-save { background-color: #3b82f6; color: white; }
+        .btn-save:hover { background-color: #2563eb; }
+        
+        .pw-input { width: 80px; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-weight: bold; text-align: center; }
 
         .board-container { 
             background-color: #ffffff; border: 3px solid #333; padding: 30px; 
             width: 950px; margin: 0 auto 50px auto; box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
             border-radius: 20px; position: relative; z-index: 1; transition: background-color 0.3s;
         }
-        
         .title-area { margin-bottom: 25px; }
         .title-input { 
             width: 100%; font-size: 36px; font-weight: bold; text-align: center; 
             border: 2px dashed rgba(0,0,0,0.2); padding: 15px; box-sizing: border-box;
             background: transparent; border-radius: 12px; 
         }
-        
-        .top-section, .grid-section { 
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 25px; margin-bottom: 25px; 
-        }
-        
+        .top-section, .grid-section { display: grid; grid-template-columns: repeat(2, 1fr); gap: 25px; margin-bottom: 25px; }
         .span-full { grid-column: span 2 !important; }
         
         .prize-box { 
@@ -78,30 +64,21 @@
             display: flex; flex-direction: column; position: relative;
             border-radius: 12px; overflow: hidden; transition: all 0.3s ease; 
         }
-        
-        .prize-header {
-            display: flex; align-items: center; padding: 10px 15px;
-            border-bottom: 2px solid #333; font-weight: bold;
-        }
+        .prize-header { display: flex; align-items: center; padding: 10px 15px; border-bottom: 2px solid #333; font-weight: bold; }
         .prize-badge { font-size: 22px; margin-right: 15px; white-space: nowrap; }
         .product-name-input {
             flex-grow: 1; font-size: 18px; border: 1px dashed rgba(0,0,0,0.3);
             background: transparent; padding: 5px 10px; font-weight: bold; border-radius: 6px;
         }
-        
-        .color-picker-mini {
-            width: 28px; height: 28px; padding: 0; border: 2px solid #fff; border-radius: 50%;
-            cursor: pointer; margin-right: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
+        .color-picker-mini { width: 28px; height: 28px; padding: 0; border: 2px solid #fff; border-radius: 50%; cursor: pointer; margin-right: 10px; }
 
         .prize-body { padding: 15px; display: flex; flex-direction: column; flex-grow: 1; }
-        
         .image-placeholder { 
-            width: 100%; height: 200px; background-color: #f8fafc; 
-            border: 2px dashed #cbd5e1; display: flex; align-items: center; 
-            justify-content: center; cursor: pointer; color: #64748b; 
-            margin-bottom: 15px; font-weight: bold; border-radius: 8px; 
+            width: 100%; height: 200px; background-color: #f8fafc; border: 2px dashed #cbd5e1; 
+            display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748b; 
+            margin-bottom: 15px; font-weight: bold; border-radius: 8px; overflow: hidden;
         }
+        .image-placeholder img { width: 100%; height: 100%; object-fit: cover; }
         
         .count-zone {
             width: 100%; text-align: right; font-size: 16px; font-weight: bold;
@@ -109,27 +86,17 @@
         }
         .count-input { width: 70px; padding: 5px; font-size: 16px; text-align: center; border-radius: 6px; border: 1px solid #ccc; }
 
-        .ticket-grid {
-            display: grid; 
-            gap: 5px; width: 100%;
-            justify-content: center; 
-        }
+        .ticket-grid { display: grid; gap: 5px; width: 100%; justify-content: center; }
         .ticket-slot {
-            width: 90px; 
-            height: 44px; 
-            background-color: #e2e8f0; border: 1px solid #94a3b8;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 16px; 
-            color: #64748b; font-weight: bold;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
-            border-radius: 4px;
+            width: 90px; height: 44px; background-color: #e2e8f0; border: 1px solid #94a3b8;
+            display: flex; align-items: center; justify-content: center; font-size: 16px; 
+            color: #64748b; font-weight: bold; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); border-radius: 4px;
         }
 
         .delete-btn {
-            position: absolute; top: 10px; right: 10px;
-            background-color: #ef4444; color: white; border: 2px solid #333;
-            border-radius: 8px; width: 30px; height: 30px; cursor: pointer;
-            font-weight: bold; display: flex; align-items: center; justify-content: center;
+            position: absolute; top: 10px; right: 10px; background-color: #ef4444; color: white; border: 2px solid #333;
+            border-radius: 8px; width: 30px; height: 30px; cursor: pointer; font-weight: bold; 
+            display: flex; align-items: center; justify-content: center;
         }
     </style>
 </head>
@@ -139,12 +106,14 @@
 
     <div class="control-panel">
         <div class="color-pickers">
-            <button class="btn-bg" onclick="uploadBgImage()">🖼️ 외부 배경 사진 지정</button>
-            <label style="margin-left:15px;">보드 배경: <input type="color" value="#ffffff" onchange="changeBoardColor(this.value)"></label>
-            <label>기본 테마색: <input type="color" value="#ffc107" onchange="changeThemeColor(this.value)"></label>
+            <button class="btn-bg" onclick="uploadBgImage()">🖼️ 외곽 배경</button>
+            <label>보드: <input type="color" id="boardColorVal" value="#ffffff" onchange="changeBoardColor(this.value)"></label>
+            <label>테마: <input type="color" value="#ffc107" onchange="changeThemeColor(this.value)"></label>
         </div>
         <div class="action-btns">
-            <button class="btn-add" onclick="addPrize()">+ 상 추가하기</button>
+            <label>비밀번호: <input type="password" id="adminPw" class="pw-input" placeholder="4자리" maxlength="4"></label>
+            <button class="btn-add" onclick="addPrize()">+ 상 추가</button>
+            <button class="btn-save" onclick="saveKujiData()">💾 저장 및 발급</button>
         </div>
     </div>
 
@@ -154,27 +123,29 @@
         </div>
 
         <div class="top-section" id="topSection">
-            <div class="prize-box" id="box-A">
+            <div class="prize-box prize-item" id="box-A" data-grade="A">
                 <div class="prize-header theme-target">
                     <span class="prize-badge">A 상</span>
                     <input type="text" class="product-name-input theme-text-target" placeholder="상품 이름을 입력하세요">
                 </div>
                 <div class="prize-body">
-                    <div class="image-placeholder" onclick="uploadItemImage(this)">클릭하여 사진 추가</div>
+                    <div class="image-placeholder" data-url="" onclick="uploadItemImage(this)">클릭하여 사진 추가</div>
                     <div class="count-zone">수량: <input type="number" class="count-input" value="1" min="1" oninput="renderTickets(this, 'A')"> 개</div>
                     <div class="ticket-grid" id="tickets-A"></div>
                 </div>
             </div>
             
-            <div class="prize-box" id="box-LastOne" style="border-color: #ef4444;">
+            <div class="prize-box prize-item" id="box-LastOne" data-grade="LastOne" style="border-color: #ef4444;">
                 <div class="prize-header" id="lastOneHeader" style="background-color: #ef4444; color: white;">
                     <span class="prize-badge">라스트원상</span>
-                    <input type="color" class="color-picker-mini" title="라스트원상 색상 변경" value="#ef4444" onchange="changeLastOneColor(this.value)">
+                    <input type="color" class="color-picker-mini" id="lastOneColorVal" title="라스트원상 색상" value="#ef4444" onchange="changeLastOneColor(this.value)">
                     <input type="text" class="product-name-input" id="lastOneInput" style="color: white; border-color: rgba(255,255,255,0.5);" placeholder="마지막 상품">
                 </div>
                 <div class="prize-body" style="background-color: #fff5f5;">
-                    <div class="image-placeholder" onclick="uploadItemImage(this)">클릭하여 사진 추가</div>
+                    <div class="image-placeholder" data-url="" onclick="uploadItemImage(this)">클릭하여 사진 추가</div>
                     <div class="count-zone" style="text-align: center; color: #ef4444;">마지막 뽑기 시 자동 당첨</div>
+                    <!-- 로직 처리를 위해 보이지 않는 수량 1개 값 유지 -->
+                    <input type="hidden" class="count-input" value="1">
                 </div>
             </div>
         </div>
@@ -183,13 +154,36 @@
     </div>
 
     <script>
+        // ==========================================
+        // 1. 파이어베이스 설정 (여기를 디렉터님 키로 바꿔주세요!)
+        // ==========================================
+        const firebaseConfig = {
+          apiKey: "AIzaSyCcDaH3APgziGLPIvB87h9aAKD7FIyAh50",
+          authDomain: "kujimaker.firebaseapp.com",
+          projectId: "kujimaker",
+          storageBucket: "kujimaker.firebasestorage.app",
+          messagingSenderId: "107197933366",
+          appId: "1:107197933366:web:5f0c280f1746a7b07b3597"
+        };
+        
+        // 파이어베이스 초기화
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // ==========================================
+        // 2. 편집기 디자인 로직 (기존 유지)
+        // ==========================================
         let prizeAlphabet = 66; 
         let currentThemeColor = "#ffc107";
         let currentThemeTextColor = "#000000";
+        let currentBgUrl = "";
 
         function uploadBgImage() {
             const imageUrl = prompt("바깥 배경으로 쓸 이미지 URL을 입력하세요.");
-            if(imageUrl) document.getElementById('bgBlur').style.backgroundImage = `url('${imageUrl}')`;
+            if(imageUrl) {
+                currentBgUrl = imageUrl;
+                document.getElementById('bgBlur').style.backgroundImage = `url('${imageUrl}')`;
+            }
         }
 
         function changeBoardColor(color) { document.getElementById('board').style.backgroundColor = color; }
@@ -222,15 +216,17 @@
 
         function uploadItemImage(element) {
             const imageUrl = prompt("상품 이미지 URL을 입력하세요.");
-            if(imageUrl) element.innerHTML = `<img src="${imageUrl}" style="width:100%; height:100%; object-fit:cover; border-radius: 8px;">`;
+            if(imageUrl) {
+                element.innerHTML = `<img src="${imageUrl}">`;
+                element.setAttribute('data-url', imageUrl); // 데이터 저장을 위해 속성에 URL 기록
+            }
         }
 
         function calculateBalancedColumns(count) {
             const maxCols = count > 8 ? 9 : 4; 
             if (count <= maxCols) return count;
             const rows = Math.ceil(count / maxCols);
-            const optimalCols = Math.ceil(count / rows);
-            return optimalCols;
+            return Math.ceil(count / rows);
         }
 
         function renderTickets(inputElement, letter) {
@@ -244,7 +240,6 @@
             else box.classList.remove('span-full');
 
             ticketGrid.innerHTML = '';
-            
             const cols = calculateBalancedColumns(count);
             ticketGrid.style.gridTemplateColumns = `repeat(${cols}, 90px)`;
 
@@ -263,14 +258,14 @@
             const defaultCount = 5;
             
             const prizeHtml = `
-                <div class="prize-box" id="box-${prizeLetter}">
+                <div class="prize-box prize-item" id="box-${prizeLetter}" data-grade="${prizeLetter}">
                     <button class="delete-btn" onclick="deletePrize('${prizeLetter}')">X</button>
                     <div class="prize-header theme-target" style="background-color: ${currentThemeColor}; color: ${currentThemeTextColor};">
                         <span class="prize-badge">${prizeLetter} 상</span>
                         <input type="text" class="product-name-input theme-text-target" style="color: ${currentThemeTextColor};" placeholder="상품 이름을 입력하세요">
                     </div>
                     <div class="prize-body">
-                        <div class="image-placeholder" onclick="uploadItemImage(this)">클릭하여 사진 추가</div>
+                        <div class="image-placeholder" data-url="" onclick="uploadItemImage(this)">클릭하여 사진 추가</div>
                         <div class="count-zone">
                             수량: <input type="number" class="count-input" value="${defaultCount}" min="1" oninput="renderTickets(this, '${prizeLetter}')"> 개
                         </div>
@@ -297,6 +292,7 @@
             boxes.forEach((box) => {
                 const letter = String.fromCharCode(prizeAlphabet);
                 box.id = `box-${letter}`;
+                box.setAttribute('data-grade', letter);
                 box.querySelector('.delete-btn').setAttribute('onclick', `deletePrize('${letter}')`);
                 box.querySelector('.prize-badge').innerText = `${letter} 상`;
                 
@@ -309,6 +305,73 @@
             });
         }
 
+        // ==========================================
+        // 3. 파이어베이스 저장 및 랜덤 코드 발급 로직
+        // ==========================================
+        
+        // 5자리 랜덤 코드 생성기 (숫자 + 대문자 알파벳)
+        function generateUniqueCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 헷갈리기 쉬운 O,0,1,I 제외
+            let code = '';
+            for (let i = 0; i < 5; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+
+        async function saveKujiData() {
+            const title = document.getElementById('titleInput').value.trim();
+            const password = document.getElementById('adminPw').value.trim();
+
+            if(!title) { alert("쿠지 제목을 입력해주세요!"); return; }
+            if(!password || password.length < 4) { alert("관리자 비밀번호 4자리를 설정해주세요!"); return; }
+
+            // 저장할 데이터 덩어리 만들기
+            const kujiData = {
+                title: title,
+                password: password,
+                style: {
+                    bgUrl: currentBgUrl,
+                    boardColor: document.getElementById('boardColorVal').value,
+                    themeColor: currentThemeColor,
+                    lastOneColor: document.getElementById('lastOneColorVal').value
+                },
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                prizes: []
+            };
+
+            // 모든 상(A상, B상, 라스트원상 등) 데이터 긁어오기
+            document.querySelectorAll('.prize-item').forEach(box => {
+                const grade = box.getAttribute('data-grade');
+                const name = box.querySelector('.product-name-input').value.trim();
+                const imageUrl = box.querySelector('.image-placeholder').getAttribute('data-url');
+                const quantity = parseInt(box.querySelector('.count-input').value);
+
+                kujiData.prizes.push({
+                    grade: grade,
+                    name: name || `${grade}상 상품`, // 이름 안썼으면 기본값
+                    imageUrl: imageUrl || '',
+                    totalQuantity: quantity,
+                    remainQuantity: quantity // 처음엔 전체 수량과 남은 수량이 같음
+                });
+            });
+
+            // 5자리 코드 발급 및 DB 저장
+            const uniqueCode = generateUniqueCode();
+            
+            try {
+                // 'kuji_boards' 라는 컬렉션(폴더)에 5자리 코드를 이름으로 하는 문서 저장
+                await db.collection("kuji_boards").doc(uniqueCode).set(kujiData);
+                
+                alert(`🎉 저장이 완료되었습니다!\n\n당신의 고유 참여 코드는 [ ${uniqueCode} ] 입니다.\n참여하기 페이지에서 이 코드를 입력하세요.`);
+                
+            } catch (error) {
+                console.error("저장 중 에러 발생:", error);
+                alert("저장에 실패했습니다. 파이어베이스 설정(Config) 키를 정확히 입력했는지 확인해주세요.");
+            }
+        }
+
+        // 초기 렌더링
         changeThemeColor("#ffc107");
         renderTickets(document.querySelector('#box-A .count-input'), 'A');
     </script>
